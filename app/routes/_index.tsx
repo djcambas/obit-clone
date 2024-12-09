@@ -1,8 +1,8 @@
 import type { MetaFunction } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { Form, useNavigation, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
-import { action } from "./auth.login";
-
+import { createCookieSessionStorage, LoaderFunction } from "@remix-run/node";
+import { getFlashMessage } from "~/services/auth.server";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,11 +11,29 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+//Check sessionStorage and if one is valid, redirect to protected route
+// Define the session storage
+export const sessionStorage = createCookieSessionStorage({
+  cookie: {
+    name: "__session",
+    httpOnly: true,
+    path: "/",
+    sameSite: "lax",
+    secrets: [process.env.SESSION_SECRET || "s3cr3t"],
+    secure: process.env.NODE_ENV === "production",
+  },
+});
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const { error, headers } = await getFlashMessage(request);
+  return Response.json({ error }, { headers });
+};
+
 export default function Index() {
   const [isLogin, setIsLogin] = useState(true);
   const navigation = useNavigation();
-  const actionData = useActionData<typeof action>();
   const isSubmitting = navigation.state === "submitting";
+  const { error } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -24,13 +42,17 @@ export default function Index() {
           {isLogin ? "Login" : "Sign Up"}
         </h1>
 
-        {actionData?.error && (
+        {error && (
           <div className="text-red-500 text-sm text-center">
-            {actionData.error}
+            {error}
           </div>
         )}
 
-        <Form action={isLogin ? "/auth/login" : "/auth/signup"} method="post" className="mt-8 space-y-6">
+        <Form action={isLogin ? "/auth/login" : "/auth/signup"}
+          method="post"
+          encType="application/x-www-form-urlencoded"
+          className="mt-8 space-y-6"
+        >
           {!isLogin && (
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">

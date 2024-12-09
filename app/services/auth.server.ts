@@ -1,109 +1,114 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createCookieSessionStorage, redirect } from "@remix-run/node";
+import { Authenticator } from "remix-auth";
+import { FormStrategy } from "remix-auth-form";
 import { UserModel } from "./user.server";
+import { sessionStorage } from "~/routes/_index";
 import bcrypt from "bcryptjs";
 
-const sessionStorage = createCookieSessionStorage({
+// Define the flash session storage. Mostly used for error messages right now.
+export const flashSessionStorage = createCookieSessionStorage({
   cookie: {
-    name: "__session",
+    name: "__flash",
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secrets: [process.env.SESSION_SECRET || "s3cr3t"], // Change in production
+    secrets: [process.env.SESSION_SECRET || "s3cr3t"],
     secure: process.env.NODE_ENV === "production",
   },
 });
 
-export interface LoginForm {
-  email: string;
-  password: string;
-}
 
-export class AuthService {
-  static async login({ email, password }: LoginForm) {
+// Define your User type to match your database model
+export type User = {
+  id: number;
+  email: string;
+  name: string | null;
+  createdAt: Date;
+};
+
+class AuthError extends Error { }
+
+// Create an instance of the authenticator
+export const authenticator = new Authenticator<User>();
+
+// Configure FormStrategy
+authenticator.use(
+  new FormStrategy(async ({ form }) => {
+    const email = form.get("email");
+    const password = form.get("password");
+
+    if (typeof email !== "string" || typeof password !== "string") {
+      throw new AuthError("Invalid form submission");
+    }
+
     const user = await UserModel.findByEmail(email);
     if (!user) {
-      return { error: "Invalid credentials" };
+      throw new AuthError("Invalid credentials");
     }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-      return { error: "Invalid credentials" };
+      throw new AuthError("Invalid credentials");
     }
 
-    const session = await sessionStorage.getSession();
-    session.set("userId", user.id);
 
-    // Remove password from response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }),
+  "form"
+);
 
-    return {
-      user: userWithoutPassword,
-      headers: {
-        "Set-Cookie": await sessionStorage.commitSession(session),
-      },
-    };
+export async function requireUser(request: Request): Promise<User> {
+  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  const user = session.get("user");
+
+  if (!user) {
+    throw redirect("/");
   }
 
-  static async logout(request: Request) {
-    const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-    return redirect("/login", {
-      headers: {
-        "Set-Cookie": await sessionStorage.destroySession(session),
-      },
-    });
+  console.log("User", user);
+  return user;
+}
+
+export async function logout(request: Request) {
+  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  return redirect("/", {
+    headers: {
+      "Set-Cookie": await sessionStorage.destroySession(session),
+    },
+  });
+}
+
+export async function signup({ email, password, username }: {
+  email: string;
+  password: string;
+  username: string;
+}) {
+  const existingUser = await UserModel.findByEmail(email);
+  if (existingUser) {
+    throw new Error("User already exists");
   }
 
-  static async requireUser(request: Request) {
-    const session = await sessionStorage.getSession(request.headers.get("Cookie"));
-    const userId = session.get("userId");
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = await UserModel.create({
+    email,
+    password: hashedPassword,
+    name: username,
+  });
 
-    if (!userId) {
-      throw redirect("/login");
-    }
+  const { password: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
+}
 
-    const user = await UserModel.findByEmail(userId);
-    if (!user) {
-      throw redirect("/login");
-    }
+export async function getFlashMessage(request: Request) {
+  const session = await flashSessionStorage.getSession(request.headers.get("Cookie"));
+  const error = session.get("error");
 
-    return user;
-  }
-
-  static async signup({ email, password, username }: {
-    email: string;
-    password: string;
-    username: string;
-  }) {
-    // Check if user exists
-    const existingUser = await UserModel.findByEmail(email);
-    if (existingUser) {
-      return { error: "User already exists" };
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await UserModel.create({
-      email,
-      password: hashedPassword,
-      name: username,
-    });
-
-    console.log("user", user);
-    const session = await sessionStorage.getSession();
-    session.set("userId", user.id);
-
-    console.log("session", session);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      headers: {
-        "Set-Cookie": await sessionStorage.commitSession(session),
-      },
-    };
-  }
+  return {
+    error,
+    headers: {
+      "Set-Cookie": await flashSessionStorage.commitSession(session),
+    },
+  };
 }
