@@ -1,5 +1,4 @@
-import { LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Outlet } from "@remix-run/react";
+import { LoaderFunction, useLoaderData, Outlet } from "react-router";
 import { requireUser, User } from "~/services/auth.server";
 import Sidebar from "~/components/Sidebar";
 

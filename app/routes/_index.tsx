@@ -1,7 +1,6 @@
-import type { MetaFunction } from "@remix-run/node";
-import { Form, useNavigation, useLoaderData } from "@remix-run/react";
+import type { MetaFunction } from "react-router";
+import { createCookieSessionStorage, Form, useNavigation, useLoaderData, data } from "react-router";
 import { useState } from "react";
-import { createCookieSessionStorage, LoaderFunction } from "@remix-run/node";
 import { getFlashMessage } from "~/services/auth.server";
 
 export const meta: MetaFunction = () => {
@@ -24,16 +23,17 @@ export const sessionStorage = createCookieSessionStorage({
   },
 });
 
-export const loader: LoaderFunction = async ({ request }) => {
+export async function loader({ request }: { request: Request }) {
   const { error, headers } = await getFlashMessage(request);
-  return Response.json({ error }, { headers });
-};
+  return data({ error }, { headers });
+}
 
 export default function Index() {
   const [isLogin, setIsLogin] = useState(true);
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-  const { error } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  const error = data.error;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

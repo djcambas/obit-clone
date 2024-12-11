@@ -1,6 +1,6 @@
-import type { ActionFunction } from "@remix-run/node";
+import type { ActionFunction } from "react-router";
 import { AuthService } from "../services/auth.server";
-import { useActionData } from "@remix-run/react";
+import { useActionData } from "react-router";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
