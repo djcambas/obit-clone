@@ -1,6 +1,7 @@
 import type { ActionFunction } from "react-router";
-import { AuthService } from "../services/auth.server";
+import { signup, User } from "../../services/auth.server";
 import { useActionData } from "react-router";
+
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
@@ -20,13 +21,13 @@ export const action: ActionFunction = async ({ request }) => {
     );
   }
 
-  const result = await AuthService.signup({ email, password, username });
+  const result = await signup({ email, password, username });
   console.log("result", result);
   return result;
 };
 
 export default function SignupRoute() {
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<{ user?: User; error?: string }>();
   console.log("actionData", actionData);
   if (actionData?.user) {
     return (
