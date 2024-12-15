@@ -10,7 +10,7 @@ export function useUser(): User | undefined {
   console.log("Matches:", matches); // Debugging line
 
   const parentMatch = matches.find(
-    (match) => match.id === "routes/protected/index"
+    (match) => match.id === "routes/protected"
   );
 
   return (parentMatch?.data as RouteData | undefined)?.user;
