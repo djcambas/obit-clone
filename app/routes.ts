@@ -8,9 +8,9 @@ import {
 
 export default [
   index("./routes/_index.tsx"),
-  route("/auth/login", "./routes/unprotected/login.tsx"),
-  route("/auth/logout", "./routes/logout.tsx"),
-  route("/auth/signup", "./routes/unprotected/signup.tsx"),
+  route("/login", "./routes/unprotected/login.tsx"),
+  route("/logout", "./routes/logout.tsx"),
+  route("/signup", "./routes/unprotected/signup.tsx"),
   ...prefix("/protected", [
     layout("./routes/protected/index.tsx", [
       index("./routes/protected/protected.index.tsx"),

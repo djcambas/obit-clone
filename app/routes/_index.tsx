@@ -48,7 +48,7 @@ export default function Index() {
           </div>
         )}
 
-        <Form action={isLogin ? "/auth/login" : "/auth/signup"}
+        <Form action={isLogin ? "/login" : "/signup"}
           method="post"
           encType="application/x-www-form-urlencoded"
           className="mt-8 space-y-6"

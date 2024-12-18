@@ -1,6 +1,8 @@
 import { LoaderFunction, useLoaderData, Outlet } from "react-router";
 import { requireUser, User } from "~/services/auth.server";
-import Sidebar from "~/components/Sidebar";
+import { AppSidebar } from "~/components/AppSidebar";
+import { SidebarTrigger } from "~/components/ui/sidebar";
+import { SidebarProvider } from "~/components/ui/sidebar";
 
 type LoaderData = {
   user: User;
@@ -16,13 +18,15 @@ export default function ProtectedLayout() {
 
   return (
     <div className="flex">
-      {/* Sidebar */}
-      <Sidebar user={user} />
-
-      {/* Main Content */}
-      <main className="flex-1 p-4">
-        <Outlet />
-      </main>
+      <SidebarProvider>
+        <div className="flex">
+          <AppSidebar user={user} />
+          <main className="flex-1">
+            <SidebarTrigger />
+            <Outlet />
+          </main>
+        </div>
+      </SidebarProvider>
     </div>
   );
 }
