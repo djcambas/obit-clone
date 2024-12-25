@@ -9,21 +9,77 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum GameType {
+  TOWER_DEFENSE
+  ZOMBIE_SURVIVAL
+  PLATFORMER
+  // Add more games as needed
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   name      String?
   password  String
-  posts     Post[]
   createdAt DateTime @default(now())
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
-  createdAt DateTime @default(now())
+model Game {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  stats         Json
+  digitalAssets DigitalAsset[]
+}
+
+model DigitalAsset {
+  id                      Int                       @id @default(autoincrement())
+  name                    String
+  cardNumber              Int                       @unique
+  createdAt               DateTime                  @default(now())
+  startingPrice           Float
+  gameType                GameType
+  game                    Game                      @relation(fields: [gameId], references: [id])
+  gameId                  Int
+  DigitalAssetCombination DigitalAssetCombination[] @relation("CombinationResult")
+  CombinationIngredient   CombinationIngredient[]
+  imageUri                String
+  Sprite                  Sprite[]
+
+  @@unique([cardNumber, name])
+}
+
+model DigitalAssetCombination {
+  id          Int                     @id @default(autoincrement())
+  createdAt   DateTime                @default(now())
+  ingredients CombinationIngredient[]
+  result      DigitalAsset            @relation("CombinationResult", fields: [resultId], references: [id])
+  resultId    Int
+}
+
+model CombinationIngredient {
+  id             Int                     @id @default(autoincrement())
+  combination    DigitalAssetCombination @relation(fields: [combinationId], references: [id])
+  combinationId  Int
+  digitalAsset   DigitalAsset            @relation(fields: [digitalAssetId], references: [id])
+  digitalAssetId Int
+  quantity       Int                     @default(1) // Number of this ingredient used
+
+  @@unique([combinationId, digitalAssetId])
+}
+
+model Sprite {
+  id             Int          @id @default(autoincrement())
+  spriteType     SpriteType
+  uri            String
+  digitalAsset   DigitalAsset @relation(fields: [digitalAssetId], references: [id])
+  digitalAssetId Int
+
+  @@unique([digitalAssetId, spriteType])
+}
+
+enum SpriteType {
+  WALKING
+  ATTACKING
+  IDLE
+  // Add more sprite types as needed
 }

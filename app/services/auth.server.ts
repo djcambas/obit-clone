@@ -5,6 +5,7 @@ import { FormStrategy } from "remix-auth-form";
 import { UserModel } from "./user.server";
 import { sessionStorage } from "~/routes/_index";
 import bcrypt from "bcryptjs";
+import jwt from 'jsonwebtoken';
 
 // Define the flash session storage. Mostly used for error messages right now.
 export const flashSessionStorage = createCookieSessionStorage({
@@ -111,4 +112,38 @@ export async function getFlashMessage(request: Request) {
       "Set-Cookie": await flashSessionStorage.commitSession(session),
     },
   };
+}
+
+export async function getAuthToken(request: Request) {
+  const session = await sessionStorage.getSession(request.headers.get("Cookie"));
+  const user = session.get("user");
+
+  if (!user) {
+    throw Response.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Return the session cookie that GML can use
+  return Response.json({
+    token: request.headers.get("Cookie")
+  }, {
+    headers: {
+      "Access-Control-Allow-Origin": "http://127.0.0.1:51264",
+      "Access-Control-Allow-Headers": "Content-Type",
+    }
+  });
+}
+
+export function createGameToken(user: User | undefined) {
+  const gameToken = {
+    userId: user?.id || 'guest',
+    email: user?.email,
+    name: user?.name,
+    // Add any other user data you need
+  };
+
+  return jwt.sign(
+    gameToken,
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '15m' }
+  );
 }

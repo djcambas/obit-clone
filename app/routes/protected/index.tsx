@@ -1,8 +1,7 @@
 import { LoaderFunction, useLoaderData, Outlet } from "react-router";
 import { requireUser, User } from "~/services/auth.server";
 import { AppSidebar } from "~/components/AppSidebar";
-import { SidebarTrigger } from "~/components/ui/sidebar";
-import { SidebarProvider } from "~/components/ui/sidebar";
+import { SidebarTrigger, SidebarProvider } from "~/components/ui/sidebar";
 
 type LoaderData = {
   user: User;
